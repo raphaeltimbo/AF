@@ -60,3 +60,32 @@ def search_tag_mask(server, tag_mask):
     tags = AF.PI.PIPoint.FindPIPoints(server, tag_mask)
 
     return [tag for tag in tags]
+
+
+def sample_data(server, tags, time_range, time_span):
+    """Get sample data.
+    
+    Parameters
+    ----------
+    server : PI_server
+    
+    tags : list
+        List with tags as str.
+    time_range : tuple
+        Tuple with start time and end time as str.
+    time_span : str
+        Time span (e.g.: '1s', '1d'...)
+        
+    Returns
+    -------
+    sample_data : DataFrame
+        A pandas DataFrame with the sample data.
+    """
+    d = {}
+    for t in tags:
+        tag0 = tag(server, t)
+        inter_values = interpolated_values(tag0, time_range, time_span)
+        d[t] = [v.Value for v in inter_values]
+
+    return pd.DataFrame(d)
+
