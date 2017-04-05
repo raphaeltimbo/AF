@@ -4,16 +4,16 @@ clr.AddReference('OSIsoft.AFSDK')
 import OSIsoft.AF as AF
 
 
-__all__ = ['server', 'tag', 'interpolated_values', 'search_tag_mask', 'sample_data']
+__all__ = ['AF', 'get_server', 'get_tag', 'interpolated_values', 'search_tag_mask', 'sample_data']
 
 
-def server(server_name):
+def get_server(server_name):
     """Connect to server"""
-    PI_server = AF.PI.PIservers()[server_name]
+    PI_server = AF.PI.PIServers()[server_name]
     return PI_server
 
 
-def tag(server, tag_name):
+def get_tag(server, tag_name):
     """Get a tag.
     
     Parameters
@@ -31,8 +31,8 @@ def interpolated_values(tag, time_range, time_span):
     
     Parameters
     ----------
-    tag : str
-        TAG.
+    tag : TAG object
+
     time_range : tuple
         Tuple with start time and end time as str.
     time_span : str
@@ -44,7 +44,7 @@ def interpolated_values(tag, time_range, time_span):
     
     """
     time_range = AF.Time.AFTimeRange(*time_range)
-    time_span = AF.Time.AFTimeSpan(time_span)
+    time_span = AF.Time.AFTimeSpan.Parse(time_span)
 
     return tag.InterpolatedValues(time_range, time_span, '', '')
 
@@ -84,7 +84,7 @@ def sample_data(server, tags, time_range, time_span):
     """
     d = {}
     for t in tags:
-        tag0 = tag(server, t)
+        tag0 = get_tag(server, t)
         inter_values = interpolated_values(tag0, time_range, time_span)
         d[t] = [v.Value for v in inter_values]
 
