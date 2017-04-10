@@ -1,10 +1,20 @@
 import clr
 import pandas as pd
 clr.AddReference('OSIsoft.AFSDK')
+clr.AddReference('System.Net')
 import OSIsoft.AF as AF
+from System.Net import NetworkCredential
 
 
-__all__ = ['AF', 'get_server', 'get_tag', 'interpolated_values', 'search_tag_mask', 'sample_data']
+__all__ = [
+    'AF',
+    'NetworkCredential',
+    'get_server',
+    'get_tag',
+    'interpolated_values',
+    'search_tag_mask',
+    'sample_data'
+]
 
 
 def get_server(server_name):
@@ -56,11 +66,15 @@ def search_tag_mask(server, tag_mask):
     ----------
     tag_mask : str
         Tag mask (e.g.: *FI*290.033*)
-        
+
+    Returns
+    -------
+    tags list: list
+        List with tags (as str) that match the search.
     """
     tags = AF.PI.PIPoint.FindPIPoints(server, tag_mask)
 
-    return [tag for tag in tags]
+    return [tag.Name for tag in tags]
 
 
 def sample_data(server, tags, time_range, time_span):
