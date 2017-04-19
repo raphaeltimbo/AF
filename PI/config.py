@@ -1,5 +1,5 @@
 import OSIsoft.AF as AF
 
-current_server = None
+CURRENT_SERVER = None
 
 

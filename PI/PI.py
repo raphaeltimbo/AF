@@ -9,7 +9,6 @@ from System.Net import NetworkCredential
 
 __all__ = [
     'AF',
-    'NetworkCredential',
     'get_server',
     'get_tag',
     'interpolated_values',
@@ -18,9 +17,16 @@ __all__ = [
 ]
 
 
-def get_server(server_name):
+def get_server(server_name, login=None):
     """Connect to server"""
     PI_server = AF.PI.PIServers()[server_name]
+
+    if login is not None:
+        PI_server.Connect(
+            NetworkCredential(*login),
+            AF.PI.PIAuthenticationMode.PIUserAuthentication
+        )
+
     return PI_server
 
 
@@ -35,10 +41,10 @@ def get_tag(tag_name, server=None):
        PI server, if None the config.current server is used.
 
     """
-    if server is None and config.current_server is None:
+    if server is None and config.CURRENT_SERVER is None:
         raise ValueError('Pass a server or set "PI.config.current_server"')
     else:
-        server = config.current_server
+        server = config.CURRENT_SERVER
 
     return AF.PI.PIPoint.FindPIPoint(server, tag_name)
 
@@ -81,10 +87,10 @@ def search_tag_mask(tag_mask, server=None):
     tags list: list
         List with tags (as str) that match the search.
     """
-    if server is None and config.current_server is None:
+    if server is None and config.CURRENT_SERVER is None:
         raise ValueError('Pass a server or set "PI.config.current_server"')
     else:
-        server = config.current_server
+        server = config.CURRENT_SERVER
 
     tags = AF.PI.PIPoint.FindPIPoints(server, tag_mask)
 
@@ -110,14 +116,14 @@ def sample_data(tags, time_range, time_span, server=None):
     sample_data : DataFrame
         A pandas DataFrame with the sample data.
     """
-    if server is None and config.current_server is None:
+    if server is None and config.CURRENT_SERVER is None:
         raise ValueError('Pass a server or set "PI.config.current_server"')
     else:
-        server = config.current_server
+        server = config.CURRENT_SERVER
 
     d = {}
     for t in tags:
-        tag0 = get_tag(server, t)
+        tag0 = get_tag(t, server=server)
         inter_values = interpolated_values(tag0, time_range, time_span)
         d[t] = [v.Value for v in inter_values]
 
