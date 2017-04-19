@@ -24,4 +24,4 @@ VI-290.003Y
 """
 
 from .PI import *
-
+from .config import *

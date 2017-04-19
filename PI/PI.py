@@ -3,6 +3,7 @@ import pandas as pd
 clr.AddReference('OSIsoft.AFSDK')
 clr.AddReference('System.Net')
 import OSIsoft.AF as AF
+from PI import config
 from System.Net import NetworkCredential
 
 
@@ -23,16 +24,22 @@ def get_server(server_name):
     return PI_server
 
 
-def get_tag(server, tag_name):
+def get_tag(tag_name, server=None):
     """Get a tag.
     
     Parameters
     ----------
-    server : PI_Server
-    
     tag_name : str
-    
+
+    server : PI.PIServer, optional
+       PI server, if None the config.current server is used.
+
     """
+    if server is None and config.current_server is None:
+        raise ValueError('Pass a server or set "PI.config.current_server"')
+    else:
+        server = config.current_server
+
     return AF.PI.PIPoint.FindPIPoint(server, tag_name)
 
 
@@ -59,43 +66,55 @@ def interpolated_values(tag, time_range, time_span):
     return tag.InterpolatedValues(time_range, time_span, '', '')
 
 
-def search_tag_mask(server, tag_mask):
+def search_tag_mask(tag_mask, server=None):
     """Search by tag mask.
     
     Parameters
     ----------
     tag_mask : str
         Tag mask (e.g.: *FI*290.033*)
+    server : PI.PIServer, optional
+       PI server, if None the config.current server is used.
 
     Returns
     -------
     tags list: list
         List with tags (as str) that match the search.
     """
+    if server is None and config.current_server is None:
+        raise ValueError('Pass a server or set "PI.config.current_server"')
+    else:
+        server = config.current_server
+
     tags = AF.PI.PIPoint.FindPIPoints(server, tag_mask)
 
     return [tag.Name for tag in tags]
 
 
-def sample_data(server, tags, time_range, time_span):
+def sample_data(tags, time_range, time_span, server=None):
     """Get sample data.
     
     Parameters
     ----------
-    server : PI_server
-    
     tags : list
         List with tags as str.
     time_range : tuple
         Tuple with start time and end time as str.
     time_span : str
         Time span (e.g.: '1s', '1d'...)
+    server : PI.PIServer, optional
+       PI server, if None the config.current server is used.
         
     Returns
     -------
     sample_data : DataFrame
         A pandas DataFrame with the sample data.
     """
+    if server is None and config.current_server is None:
+        raise ValueError('Pass a server or set "PI.config.current_server"')
+    else:
+        server = config.current_server
+
     d = {}
     for t in tags:
         tag0 = get_tag(server, t)
