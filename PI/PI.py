@@ -13,6 +13,7 @@ __all__ = [
     'get_tag',
     'interpolated_values',
     'search_tag_mask',
+    'search_tag',
     'sample_data'
 ]
 
@@ -95,6 +96,34 @@ def search_tag_mask(tag_mask, server=None):
     tags = AF.PI.PIPoint.FindPIPoints(server, tag_mask)
 
     return [tag.Name for tag in tags]
+
+
+def search_tag(tag, server=None):
+    """Search by tag mask.
+
+    Parameters
+    ----------
+    tag_mask : str
+        Tag mask (e.g.: *FI*290.033*)
+    server : PI.PIServer, optional
+       PI server, if None the config.current server is used.
+
+    Returns
+    -------
+    tags list: list
+        List with tags (as str) that match the search.
+    """
+    if server is None and config.CURRENT_SERVER is None:
+        raise ValueError('Pass a server or set "PI.config.current_server"')
+    else:
+        server = config.CURRENT_SERVER
+
+    tags = AF.PI.PIPoint.FindPIPoints(server, tag, True)
+
+    return [
+        (tag.Name, tag.GetAttributes('').__getitem__('descriptor'))
+        for tag in tags
+    ]
 
 
 def sample_data(tags, time_range, time_span, server=None):
