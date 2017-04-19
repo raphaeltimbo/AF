@@ -112,6 +112,8 @@ def search_tag(tag, server=None):
     -------
     tags list: list
         List with tags (as str) that match the search.
+    tags descriptors : list
+        List wit
     """
     if server is None and config.CURRENT_SERVER is None:
         raise ValueError('Pass a server or set "PI.config.current_server"')
@@ -119,14 +121,15 @@ def search_tag(tag, server=None):
         server = config.CURRENT_SERVER
 
     tags = AF.PI.PIPoint.FindPIPoints(server, tag, True)
-
-    return [
-        (tag.Name, tag.GetAttributes('').__getitem__('descriptor'))
+    tag_names = [tag.Name for tag in tags]
+    tag_descr = [
+        tag.GetAttributes('').__getitem__('descriptor')
         for tag in tags
     ]
+    return tag_names, tag_descr
 
 
-def sample_data(tags, time_range, time_span, server=None):
+def sample_data(tags, time_range, time_span, save=False, server=None):
     """Get sample data.
     
     Parameters
@@ -155,6 +158,28 @@ def sample_data(tags, time_range, time_span, server=None):
         tag0 = get_tag(t, server=server)
         inter_values = interpolated_values(tag0, time_range, time_span)
         d[t] = [v.Value for v in inter_values]
+    df = pd.DataFrame(d)
+    df.columns = [
+        i.replace('.', '') for i in
+        [j.replace('-', '') for j in df.columns]
+    ]
 
-    return pd.DataFrame(d)
+    if save is True:
+        filename = (
+            'time_range-'
+            + time_range[0]
+            + ' '
+            + time_range[1]
+            + '-time_span-'
+            + time_span
+            + '.df'
+        )
+
+        for ch in [':', '/', ' ']:
+            if ch in filename:
+                filename = filename.replace(ch, '_')
+        df.to_pickle(filename)
+
+    return df
+
 
