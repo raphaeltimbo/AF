@@ -162,10 +162,14 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
     # set date_range index
     frequency = {'1s': 'S', '1h': 'H', '1d': 'D'}  # change from pi period to pandas frequncy
     f = frequency[time_span]
-    p = len(d)
+    p = len(d[tags[0]])
     index = pd.date_range(start=time_range[0], periods=p, freq=f)
 
-    df = pd.DataFrame(d, index=index)
+    try:
+        df = pd.DataFrame(d, index=index)
+    except ValueError as exc:
+        df = pd.DataFrame(d)
+        print('Index was not applied: ', exc)
 
     # remove . and - so that tags are available with using 'df.'
     df.columns = [
