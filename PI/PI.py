@@ -14,7 +14,8 @@ __all__ = [
     'interpolated_values',
     'search_tag_mask',
     'search_tag',
-    'sample_data'
+    'sample_data',
+    'sample_big_data'
 ]
 
 
@@ -160,8 +161,8 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
         d[t] = [v.Value for v in inter_values]
 
     # set date_range index
-    frequency = {'1s': 'S', '1h': 'H', '1d': 'D'}  # change from pi period to pandas frequncy
-    f = frequency[time_span]
+
+    f = config.FREQUENCY[time_span]
     p = len(d[tags[0]])
     index = pd.date_range(
          start=pd.to_datetime(time_range[0], dayfirst=True), periods=p, freq=f
@@ -198,3 +199,69 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
     return df
 
 
+def sample_big_data(tags, time_range, time_span, save=False, server=None):
+    """Get sample data.
+
+    Parameters
+    ----------
+    tags : list
+        List with tags as str.
+    time_range : tuple
+        Tuple with start time and end time as str.
+    time_span : str
+        Time span (e.g.: '1s', '1d'...)
+    server : PI.PIServer, optional
+       PI server, if None the config.current server is used.
+
+    Returns
+    -------
+    sample_data : DataFrame
+        A pandas DataFrame with the sample data.
+    """
+    # change to pandas datetime to split the calls to PI
+    start = pd.to_datetime(time_range[0], dayfirst=True)
+    end = pd.to_datetime(time_range[1], dayfirst=True)
+
+    f = config.FREQUENCY[time_span]
+    date_range = pd.date_range(start, end, freq=f)
+    rng = len(date_range) // 1000  # number of 1000s chunks
+
+    for i in range(rng):
+        start = date_range[1000 * i]
+        end = date_range[(1000 * (i + 1) - 1)]
+        # go back to PI string format before getting the data
+        st = start.strftime('%d/%m/%Y %H:%M:%S')
+        en = end.strftime('%d/%m/%Y %H:%M:%S')
+        time_range_pi = (st, en)
+
+        if i == 0:
+            df0 = sample_data(tags, time_range_pi, time_span, server=server)
+        else:
+            df1 = sample_data(tags, time_range_pi, time_span, server=server)
+            df0 = df0.append(df1)
+
+    # last step
+    st = en
+    end = date_range[-1]
+    en = end.strftime('%d/%m/%Y %H:%M:%S')
+    time_range_pi = (st, en)
+    df1 = sample_data(tags, time_range_pi, time_span, save=save, server=server)
+    df0 = df0.append(df1)
+
+    if save is True:
+        filename = (
+            'time_range-'
+            + time_range[0]
+            + ' '
+            + time_range[1]
+            + '-time_span-'
+            + time_span
+            + '.df'
+        )
+
+        for ch in [':', '/', ' ']:
+            if ch in filename:
+                filename = filename.replace(ch, '_')
+        df0.to_pickle(filename)
+
+    return df0
