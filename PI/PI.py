@@ -163,7 +163,9 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
     frequency = {'1s': 'S', '1h': 'H', '1d': 'D'}  # change from pi period to pandas frequncy
     f = frequency[time_span]
     p = len(d[tags[0]])
-    index = pd.date_range(start=time_range[0], periods=p, freq=f)
+    index = pd.date_range(
+         start=pd.to_datetime(time_range[0], dayfirst=True), periods=p, freq=f
+    )
 
     try:
         df = pd.DataFrame(d, index=index)
