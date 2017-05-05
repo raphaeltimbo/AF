@@ -153,17 +153,21 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
     else:
         server = config.CURRENT_SERVER
 
-    # set date_range index
-    frequency = {'1s': 'S', '1h': 'H', '1d': 'D'}  # change from pi period to pandas frequncy
-    f = frequency[time_span]
-    index = pd.date_range(*time_range, freq=f)
-
     d = {}
     for t in tags:
         tag0 = get_tag(t, server=server)
         inter_values = interpolated_values(tag0, time_range, time_span)
         d[t] = [v.Value for v in inter_values]
+
+    # set date_range index
+    frequency = {'1s': 'S', '1h': 'H', '1d': 'D'}  # change from pi period to pandas frequncy
+    f = frequency[time_span]
+    p = len(d)
+    index = pd.date_range(start=time_range[0], periods=p, freq=f)
+
     df = pd.DataFrame(d, index=index)
+
+    # remove . and - so that tags are available with using 'df.'
     df.columns = [
         i.replace('.', '') for i in
         [j.replace('-', '') for j in df.columns]
