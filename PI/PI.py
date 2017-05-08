@@ -5,6 +5,7 @@ clr.AddReference('System.Net')
 import OSIsoft.AF as AF
 from PI import config
 from System.Net import NetworkCredential
+from tqdm import tqdm
 
 
 __all__ = [
@@ -226,7 +227,7 @@ def sample_big_data(tags, time_range, time_span, save=False, server=None):
     date_range = pd.date_range(start, end, freq=f)
     rng = len(date_range) // 1000  # number of 1000s chunks
 
-    for i in range(rng):
+    for i in tqdm(range(rng), desc='Getting Data'):
         start = date_range[1000 * i]
         end = date_range[(1000 * (i + 1) - 1)]
         # go back to PI string format before getting the data
