@@ -16,7 +16,8 @@ __all__ = [
     'search_tag_mask',
     'search_tag',
     'sample_data',
-    'sample_big_data'
+    'sample_big_data',
+    'save_data'
 ]
 
 
@@ -131,6 +132,23 @@ def search_tag(tag, server=None):
     return tag_names, tag_descr
 
 
+def save_data(df, filename=None):
+    if filename is None:
+        start = df.index[0]
+        end = df.index[-1]
+        filename = (
+            f'{start.day}-{start.month}-{start.year}'
+            + f'--{end.day}-{end.month}-{end.year}'
+            + f'{end.freq.name}'
+            + f'.df'
+        )
+
+        for ch in [':', '/', ' ']:
+            if ch in filename:
+                filename = filename.replace(ch, '_')
+        df.to_pickle(filename)
+
+
 def sample_data(tags, time_range, time_span, save=False, server=None):
     """Get sample data.
     
@@ -227,6 +245,9 @@ def sample_big_data(tags, time_range, time_span, save=False, server=None):
     date_range = pd.date_range(start, end, freq=f)
     rng = len(date_range) // 1000  # number of 1000s chunks
 
+    if rng == 0:
+        return sample_data(tags=tags, time_range=time_range, time_span=time_span)
+
     for i in tqdm(range(rng), desc='Getting Data'):
         start = date_range[1000 * i]
         end = date_range[(1000 * (i + 1) - 1)]
@@ -234,7 +255,6 @@ def sample_big_data(tags, time_range, time_span, save=False, server=None):
         st = start.strftime('%d/%m/%Y %H:%M:%S')
         en = end.strftime('%d/%m/%Y %H:%M:%S')
         time_range_pi = (st, en)
-
         if i == 0:
             df0 = sample_data(tags, time_range_pi, time_span, server=server)
         else:
@@ -247,7 +267,8 @@ def sample_big_data(tags, time_range, time_span, save=False, server=None):
     en = end.strftime('%d/%m/%Y %H:%M:%S')
     time_range_pi = (st, en)
     df1 = sample_data(tags, time_range_pi, time_span, save=save, server=server)
-    df0 = df0.append(df1)
+    df0 = df0.append(df1)  # we lose the frequency with append
+    df0 = df0.resample(f)  # get the frequency back with resample
 
     if save is True:
         filename = (
