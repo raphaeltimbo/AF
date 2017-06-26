@@ -147,6 +147,7 @@ def save_data(df, filename=None):
             if ch in filename:
                 filename = filename.replace(ch, '_')
         df.to_pickle(filename)
+    print(f'Saved as {filename}')
 
 
 def sample_data(tags, time_range, time_span, save=False, server=None):
@@ -200,20 +201,7 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
     ]
 
     if save is True:
-        filename = (
-            'time_range-'
-            + time_range[0]
-            + ' '
-            + time_range[1]
-            + '-time_span-'
-            + time_span
-            + '.df'
-        )
-
-        for ch in [':', '/', ' ']:
-            if ch in filename:
-                filename = filename.replace(ch, '_')
-        df.to_pickle(filename)
+        save_data(df)
 
     return df
 
@@ -243,7 +231,12 @@ def sample_big_data(tags, time_range, time_span, save=False, server=None):
 
     f = config.FREQUENCY[time_span]
     date_range = pd.date_range(start, end, freq=f)
-    rng = len(date_range) // 1000  # number of 1000s chunks
+
+    ch = 1000  # number of 1000s chunks
+    if divmod(len(date_range), ch)[1] < 2:  # avoid final step with 1 (st=end)
+        rng = len(date_range) // (ch + 1)
+    else:
+        rng = len(date_range) // ch
 
     if rng == 0:
         return sample_data(tags=tags, time_range=time_range, time_span=time_span)
@@ -262,28 +255,21 @@ def sample_big_data(tags, time_range, time_span, save=False, server=None):
             df0 = df0.append(df1)
 
     # last step
-    st = en
+    start = date_range[1000 * (i + 1)]
     end = date_range[-1]
+    # go back to PI string format before getting the data
+    st = start.strftime('%d/%m/%Y %H:%M:%S')
     en = end.strftime('%d/%m/%Y %H:%M:%S')
     time_range_pi = (st, en)
-    df1 = sample_data(tags, time_range_pi, time_span, save=save, server=server)
+
+    df1 = sample_data(tags, time_range_pi, time_span, server=server)
     df0 = df0.append(df1)  # we lose the frequency with append
-    df0 = df0.resample(f)  # get the frequency back with resample
+    # eliminate errors such as 'comm fail' before resampling
+    for col in df0.columns:
+        df0[col] = pd.to_numeric(df0[col], errors='coerce')
+    df0 = df0.resample(f).mean()  # get the frequency back with resample
 
     if save is True:
-        filename = (
-            'time_range-'
-            + time_range[0]
-            + ' '
-            + time_range[1]
-            + '-time_span-'
-            + time_span
-            + '.df'
-        )
-
-        for ch in [':', '/', ' ']:
-            if ch in filename:
-                filename = filename.replace(ch, '_')
-        df0.to_pickle(filename)
+        save_data(df0)
 
     return df0
