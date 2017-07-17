@@ -175,12 +175,19 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
         server = config.CURRENT_SERVER
 
     d = {}
+    PIAttributes = {}
+    tagAttributes = {}
+
     for t in tags:
         tag0 = get_tag(t, server=server)
         inter_values = interpolated_values(tag0, time_range, time_span)
         d[t] = [v.Value for v in inter_values]
+        # create dictionary with descriptors
+        for descr in tag0.GetAttributes(''):
+            tagAttributes[descr.Key] = descr.get_Value()
+        PIAttributes[tag0.Name] = tagAttributes
 
-    # set date_range index
+        # set date_range index
 
     f = config.FREQUENCY[time_span]
     p = len(d[tags[0]])
@@ -199,6 +206,11 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
         i.replace('.', '') for i in
         [j.replace('-', '') for j in df.columns]
     ]
+
+    for k in PIAttributes.keys():
+        PIAttributes[k.replace('.', '').replace('-', '')] = PIAttributes.pop(k)
+    for col in df.columns:
+        setattr(getattr(df, col), 'PIAttributes', PIAttributes[col])
 
     if save is True:
         save_data(df)
