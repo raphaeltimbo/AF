@@ -250,7 +250,9 @@ def sample_big_data(tags, time_range, time_span, save_data=False, server=None):
     f = config.FREQUENCY[time_span]
     date_range = pd.date_range(start, end, freq=f)
 
-    ch = 1000  # number of 1000s chunks
+    chunks = {'S': 1000, 'H': 100, 'D': 10}
+    ch = chunks[f]  # number of chunks
+
     if divmod(len(date_range), ch)[1] < 2:  # avoid final step with 1 (st=end)
         rng = len(date_range) // (ch + 1)
     else:
@@ -260,8 +262,8 @@ def sample_big_data(tags, time_range, time_span, save_data=False, server=None):
         return sample_data(tags=tags, time_range=time_range, time_span=time_span, save_data=save_data)
 
     for i in tqdm(range(rng), desc='Getting Data'):
-        start = date_range[1000 * i]
-        end = date_range[(1000 * (i + 1) - 1)]
+        start = date_range[ch * i]
+        end = date_range[(ch * (i + 1) - 1)]
         # go back to PI string format before getting the data
         st = start.strftime('%d/%m/%Y %H:%M:%S')
         en = end.strftime('%d/%m/%Y %H:%M:%S')
@@ -273,7 +275,7 @@ def sample_big_data(tags, time_range, time_span, save_data=False, server=None):
             df0 = df0.append(df1)
 
     # last step
-    start = date_range[1000 * (i + 1)]
+    start = date_range[ch * (i + 1)]
     end = date_range[-1]
     # go back to PI string format before getting the data
     st = start.strftime('%d/%m/%Y %H:%M:%S')
