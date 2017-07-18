@@ -207,8 +207,10 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
         [j.replace('-', '') for j in df.columns]
     ]
 
-    for k in PIAttributes.keys():
-        PIAttributes[k.replace('.', '').replace('-', '')] = PIAttributes.pop(k)
+    old_keys = list(PIAttributes.keys())
+    for k in old_keys:
+        new_key = k.replace('.', '').replace('-', '')
+        PIAttributes[new_key] = PIAttributes.pop(k)
     for col in df.columns:
         setattr(getattr(df, col), 'PIAttributes', PIAttributes[col])
 
