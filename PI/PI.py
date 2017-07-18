@@ -17,7 +17,7 @@ __all__ = [
     'search_tag',
     'sample_data',
     'sample_big_data',
-    'save_data'
+    'save_df'
 ]
 
 
@@ -132,7 +132,7 @@ def search_tag(tag, server=None):
     return tag_names, tag_descr
 
 
-def save_data(df, filename=None):
+def save_df(df, filename=None):
     if filename is None:
         start = df.index[0]
         end = df.index[-1]
@@ -150,7 +150,7 @@ def save_data(df, filename=None):
     print(f'Saved as {filename}')
 
 
-def sample_data(tags, time_range, time_span, save=False, server=None):
+def sample_data(tags, time_range, time_span, save_data=False, server=None):
     """Get sample data.
     
     Parameters
@@ -184,8 +184,8 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
         d[t] = [v.Value for v in inter_values]
         # create dictionary with descriptors
         for descr in tag0.GetAttributes(''):
-            tagAttributes[descr.Key] = descr.get_Value()
-        PIAttributes[tag0.Name] = tagAttributes
+            tagAttributes[str(descr.Key)] = str(descr.get_Value())
+        PIAttributes[str(tag0.Name)] = tagAttributes
 
         # set date_range index
 
@@ -214,13 +214,17 @@ def sample_data(tags, time_range, time_span, save=False, server=None):
     for col in df.columns:
         setattr(getattr(df, col), 'PIAttributes', PIAttributes[col])
 
-    if save is True:
-        save_data(df)
+    # eliminate errors such as 'comm fail' before resampling
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    if save_data is True:
+        save_df(df)
 
     return df
 
 
-def sample_big_data(tags, time_range, time_span, save=False, server=None):
+def sample_big_data(tags, time_range, time_span, save_data=False, server=None):
     """Get sample data.
 
     Parameters
@@ -253,7 +257,7 @@ def sample_big_data(tags, time_range, time_span, save=False, server=None):
         rng = len(date_range) // ch
 
     if rng == 0:
-        return sample_data(tags=tags, time_range=time_range, time_span=time_span)
+        return sample_data(tags=tags, time_range=time_range, time_span=time_span, save_data=save_data)
 
     for i in tqdm(range(rng), desc='Getting Data'):
         start = date_range[1000 * i]
@@ -278,12 +282,10 @@ def sample_big_data(tags, time_range, time_span, save=False, server=None):
 
     df1 = sample_data(tags, time_range_pi, time_span, server=server)
     df0 = df0.append(df1)  # we lose the frequency with append
-    # eliminate errors such as 'comm fail' before resampling
-    for col in df0.columns:
-        df0[col] = pd.to_numeric(df0[col], errors='coerce')
+
     df0 = df0.resample(f).mean()  # get the frequency back with resample
 
-    if save is True:
-        save_data(df0)
+    if save_data is True:
+        save_df(df0)
 
     return df0
