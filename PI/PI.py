@@ -58,7 +58,7 @@ def interpolated_values(tag, time_range, time_span):
     
     Parameters
     ----------
-    tag : TAG object
+    tag : TAG object or str
 
     time_range : tuple
         Tuple with start time and end time as str.
@@ -70,6 +70,8 @@ def interpolated_values(tag, time_range, time_span):
     interpolated_values
     
     """
+    if not isinstance(tag, AF.PI.PIPoint):
+        tag = get_tag(tag)
     time_range = AF.Time.AFTimeRange(*time_range)
     time_span = AF.Time.AFTimeSpan.Parse(time_span)
 
