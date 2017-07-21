@@ -1,5 +1,6 @@
 import clr
 import pandas as pd
+import numpy as np
 clr.AddReference('OSIsoft.AFSDK')
 clr.AddReference('System.Net')
 import OSIsoft.AF as AF
@@ -72,10 +73,19 @@ def interpolated_values(tag, time_range, time_span):
     """
     if not isinstance(tag, AF.PI.PIPoint):
         tag = get_tag(tag)
-    time_range = AF.Time.AFTimeRange(*time_range)
-    time_span = AF.Time.AFTimeSpan.Parse(time_span)
+    time_range_pi = AF.Time.AFTimeRange(*time_range)
+    time_span_pi = AF.Time.AFTimeSpan.Parse(time_span)
+    try:
+        values_pi = tag.InterpolatedValues(time_range_pi, time_span_pi, '', '')
+        values = [v.Value for v in values_pi]
+    except AF.PI.PIException:
+        print(f'Error when trying to get interpolated values for '
+              f'{tag}, {time_range}, {time_span}')
+        f = config.FREQUENCY[time_span]
+        values = [np.nan for _ in range(
+            len(pd.date_range(*time_range, freq=f)))]
 
-    return tag.InterpolatedValues(time_range, time_span, '', '')
+    return values
 
 
 def search_tag_mask(tag_mask, server=None):
@@ -182,8 +192,7 @@ def sample_data(tags, time_range, time_span, save_data=False, server=None):
 
     for t in tags:
         tag0 = get_tag(t, server=server)
-        inter_values = interpolated_values(tag0, time_range, time_span)
-        d[t] = [v.Value for v in inter_values]
+        d[t] = interpolated_values(tag0, time_range, time_span)
         # create dictionary with descriptors
         for descr in tag0.GetAttributes(''):
             tagAttributes[str(descr.Key)] = str(descr.get_Value())
