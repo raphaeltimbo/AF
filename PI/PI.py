@@ -1,6 +1,7 @@
 import clr
 import pandas as pd
 import numpy as np
+import pickle
 clr.AddReference('OSIsoft.AFSDK')
 clr.AddReference('System.Net')
 import OSIsoft.AF as AF
@@ -11,6 +12,7 @@ from tqdm import tqdm
 
 __all__ = [
     'AF',
+    'PIDataFrame',
     'get_server',
     'get_tag',
     'interpolated_values',
@@ -18,8 +20,18 @@ __all__ = [
     'search_tag',
     'sample_data',
     'sample_big_data',
-    'save_df'
+    'save_df',
+    'load_from_pickle'
 ]
+
+
+class PIDataFrame(pd.DataFrame):
+
+    _metadata = ['PIAttributes']
+
+    @property
+    def _constructor(self):
+        return PIDataFrame
 
 
 def get_server(server_name, login=None):
@@ -158,8 +170,35 @@ def save_df(df, filename=None):
         for ch in [':', '/', ' ']:
             if ch in filename:
                 filename = filename.replace(ch, '_')
-        df.to_pickle(filename)
+
+        with open(filename, 'wb') as f:
+            pickle.dump([df, df.PIAttributes], f)
+
     print(f'Saved as {filename}')
+
+
+def load_from_pickle(filename):
+    """Load df from pickle.
+
+    This function will load the dataframe and the metadata
+    associated with PIAttributes.
+
+    Parameters
+    ----------
+    filename : str
+        File name.
+
+    Returns
+    -------
+    df : DataFrame
+        A pandas DataFrame with the sample data.
+    """
+    with open(filename, 'rb') as f:
+        df, PIAttributes = pickle.load(f)
+
+    df.PIAttributes = PIAttributes
+
+    return df
 
 
 def sample_data(tags, time_range, time_span, save_data=False, server=None):
@@ -207,9 +246,9 @@ def sample_data(tags, time_range, time_span, save_data=False, server=None):
     )
 
     try:
-        df = pd.DataFrame(d, index=index)
+        df = PIDataFrame(d, index=index)
     except ValueError as exc:
-        df = pd.DataFrame(d)
+        df = PIDataFrame(d)
         print('Index was not applied: ', exc)
 
     # remove . and - so that tags are available with using 'df.'
@@ -222,8 +261,9 @@ def sample_data(tags, time_range, time_span, save_data=False, server=None):
     for k in old_keys:
         new_key = k.replace('.', '').replace('-', '')
         PIAttributes[new_key] = PIAttributes.pop(k)
-    for col in df.columns:
-        setattr(getattr(df, col), 'PIAttributes', PIAttributes[col])
+    df.PIAttributes = PIAttributes
+    # for col in df.columns:
+    #     setattr(getattr(df, col), 'PIAttributes', PIAttributes[col])
 
     # eliminate errors such as 'comm fail' before resampling
     for col in df.columns:
@@ -281,6 +321,8 @@ def sample_big_data(tags, time_range, time_span, save_data=False, server=None):
         time_range_pi = (st, en)
         if i == 0:
             df0 = sample_data(tags, time_range_pi, time_span, server=server)
+            # store PIAttributes to avoid losing them after append
+            PIAttributes = df0.PIAttributes
         else:
             df1 = sample_data(tags, time_range_pi, time_span, server=server)
             df0 = df0.append(df1)
@@ -297,6 +339,8 @@ def sample_big_data(tags, time_range, time_span, save_data=False, server=None):
     df0 = df0.append(df1)  # we lose the frequency with append
 
     df0 = df0.resample(f).mean()  # get the frequency back with resample
+
+    df0.PIAttributes = PIAttributes
 
     if save_data is True:
         save_df(df0)
