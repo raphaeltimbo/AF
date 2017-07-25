@@ -1,6 +1,7 @@
 import clr
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import pickle
 clr.AddReference('OSIsoft.AFSDK')
 clr.AddReference('System.Net')
@@ -365,3 +366,111 @@ def sample_big_data(tags, time_range, time_span, save_data=False, server=None):
         save_df(df0)
 
     return df0
+
+
+def PI_plot(tags, df, PIAttributes, ax=None):
+    """Plot PI values.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+
+    tags : str
+        String with the tags (e.g.: 'VI290003X VI290003Y')
+    ax : matplotlib.axes, optional
+        Matplotlib axes where data will be plotted.
+        If None creates a new.
+
+    returns
+    ax : matplotlib.axes
+        Matplotlib axes with plotted data.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(16, 8))
+    tags = tags.split(' ')
+    tagunits = {}
+
+    # checke how many units/axes
+    for tag in tags:
+        # check if unit is already in tagunits
+        if not PIAttributes[tag]['engunits'] in tagunits.values():
+            # create unit
+            tagunits[tag] = PIAttributes[tag]['engunits']
+
+    n_units = len(tagunits)
+    units = [i for i in tagunits.values()]
+
+    if n_units > 3:
+        raise Exception('Cannot plot more than 3 units')
+
+    if n_units == 1:
+        for tag in tags:
+            series = getattr(df, tag)
+            ax.plot(series, label=tag)
+            ax.legend()
+    else:
+        axes = [ax.twinx() for i in range(len(tagunits) - 1)]
+        axes.insert(0, ax)
+
+    if n_units == 2:
+        # set the labels
+        for _ax, unit in zip(axes, tagunits.values()):
+            _ax.set_ylabel(unit)
+
+        # check unit for each tag and plot to the correct axes
+        lines = []
+        labels = []
+        for tag in tags:
+            unit = PIAttributes[tag]['engunits']
+            idx = units.index(unit)
+            series = getattr(df, tag)
+            # Make solid lines for lines in ax0
+            if idx == 0:
+                line, = axes[idx].plot(series, label=tag)
+            else:
+                line, = axes[idx].plot(series, linestyle='--', alpha=0.3, label=tag)
+            lines.append(line)
+            labels.append(line.get_label())
+        ax = axes[0]
+        box = ax.get_position()
+        # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        ax.legend(lines, labels, loc='center left', bbox_to_anchor=(1.05, 0.5))
+        # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+    if n_units == 3:
+        # set the labels
+        for _ax, unit in zip(axes, tagunits.values()):
+            _ax.set_ylabel(unit)
+
+        # check unit for each tag and plot to the correct axes
+        lines = []
+        labels = []
+        for tag in tags:
+            unit = PIAttributes[tag]['engunits']
+            idx = units.index(unit)
+            series = getattr(df, tag)
+            # Make solid lines for lines in ax0 and keep one color cycle
+            next_color = axes[0]._get_lines.get_next_color()
+            if idx == 0:
+                line, = axes[idx].plot(series, label=tag, color=next_color)
+            else:
+                line, = axes[idx].plot(series, linestyle='--', color=next_color, alpha=0.5, label=tag)
+            lines.append(line)
+            labels.append(line.get_label())
+        ax = axes[0]
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        ax.legend(lines, labels, loc='center left', bbox_to_anchor=(1.2, 0.5))
+
+        # Make some space on the right side for the extra y-axis.
+        fig.subplots_adjust(right=0.75)
+
+        # Move the last y-axis spine over to the right by 20% of the width of the axes
+        axes[-1].spines['right'].set_position(('axes', 1.1))
+
+        # To make the border of the right-most axis visible, we need to turn the frame
+        # on. This hides the other plots, however, so we need to turn its fill off.
+        axes[-1].set_frame_on(True)
+        axes[-1].patch.set_visible(False)
+
+
