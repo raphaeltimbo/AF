@@ -177,6 +177,24 @@ def save_df(df, filename=None):
     print(f'Saved as {filename}')
 
 
+def save_to_pandas(file):
+    """Saves to pandas DataFrame.
+    It will save PIAttributes separate from the pandas DataFrame.
+
+    Parameters
+    ----------
+    file : file saved with save_df
+    """
+    # load df
+    df = load_from_pickle(file)
+    # separate
+    PIAttributes = df.PIAttributes
+    df = pd.DataFrame(df)
+    # save
+    with open((file + 'pd'), 'wb') as f:
+        pickle.dump([df, PIAttributes], f)
+
+
 def load_from_pickle(filename):
     """Load df from pickle.
 
