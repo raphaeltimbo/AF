@@ -21,6 +21,7 @@ __all__ = [
     'sample_data',
     'sample_big_data',
     'save_df',
+    'save_to_pandas',
     'load_from_pickle'
 ]
 
@@ -245,12 +246,12 @@ def sample_data(tags, time_range, time_span, save_data=False, server=None):
 
     d = {}
     PIAttributes = {}
-    tagAttributes = {}
 
     for t in tags:
         tag0 = get_tag(t, server=server)
         d[t] = interpolated_values(tag0, time_range, time_span)
         # create dictionary with descriptors
+        tagAttributes = {}
         for descr in tag0.GetAttributes(''):
             tagAttributes[str(descr.Key)] = str(descr.get_Value())
         PIAttributes[str(tag0.Name)] = tagAttributes
