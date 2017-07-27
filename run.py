@@ -49,7 +49,7 @@ tags = [
     'VI-290.004Y_Not1X'
     ]
 
-time_span = '1s'
-time_range = ('01/01/2017 01:00:00', '01/01/2017 01:10:00')
+time_span = '1d'
+time_range = ('01/01/2015 01:00:00', '31/12/2015 01:00:00')
 
-df1 = PI.sample_data(tags, time_range, time_span)
+df1 = PI.sample_big_data(tags, time_range, time_span)

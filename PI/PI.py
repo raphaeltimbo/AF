@@ -95,8 +95,9 @@ def interpolated_values(tag, time_range, time_span):
         print(f'Error when trying to get interpolated values for '
               f'{tag}, {time_range}, {time_span}')
         f = config.FREQUENCY[time_span]
-        values = [np.nan for _ in range(
-            len(pd.date_range(*time_range, freq=f)))]
+        number_of_samples = len(pd.date_range(
+            *pd.to_datetime(time_range, dayfirst=True), freq=f))
+        values = [np.nan for _ in range(number_of_samples)]
 
     return values
 
@@ -281,8 +282,6 @@ def sample_data(tags, time_range, time_span, save_data=False, server=None):
         new_key = k.replace('.', '').replace('-', '')
         PIAttributes[new_key] = PIAttributes.pop(k)
     df.PIAttributes = PIAttributes
-    # for col in df.columns:
-    #     setattr(getattr(df, col), 'PIAttributes', PIAttributes[col])
 
     # eliminate errors such as 'comm fail' before resampling
     for col in df.columns:
