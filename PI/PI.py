@@ -89,12 +89,24 @@ def interpolated_values(tag, time_range, time_span):
         tag = get_tag(tag)
     time_range_pi = AF.Time.AFTimeRange(*time_range)
     time_span_pi = AF.Time.AFTimeSpan.Parse(time_span)
-    try:
-        values_pi = tag.InterpolatedValues(time_range_pi, time_span_pi, '', '')
-        values = [v.Value for v in values_pi]
-    except AF.PI.PIException:
-        print(f'Error when trying to get interpolated values for '
-              f'{tag}, {time_range}, {time_span}')
+
+    values = None
+    n_of_tries = 0
+
+    while values is None and n_of_tries < 3:
+        try:
+            values_pi = tag.InterpolatedValues(time_range_pi, time_span_pi, '', '')
+            values = [v.Value for v in values_pi]
+        except AF.PI.PITimeoutException:
+            n_of_tries += 1
+            print(f'PITimeout -> Number of tries: {n_of_tries}')
+            pass
+        except AF.PI.PIException:
+            print(f'Error when trying to get interpolated values for '
+                  f'{tag}, {time_range}, {time_span}')
+            break
+
+    if values is None:
         f = config.FREQUENCY[time_span]
         number_of_samples = len(pd.date_range(
             *pd.to_datetime(time_range, dayfirst=True), freq=f))
@@ -194,6 +206,7 @@ def save_to_pandas(file):
     PIAttributes = df.PIAttributes
     df = pd.DataFrame(df)
     # save
+    print(f'Saved as {file + "pd"}')
     with open((file + 'pd'), 'wb') as f:
         pickle.dump([df, PIAttributes], f)
 
